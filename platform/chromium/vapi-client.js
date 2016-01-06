@@ -24,7 +24,6 @@
 /******************************************************************************/
 
 (function(self) {
-
 'use strict';
 
 /******************************************************************************/
@@ -32,7 +31,7 @@
 // https://github.com/gorhill/uBlock/issues/1124
 // Looks like `contentType` is on track to be standardized:
 //   https://dom.spec.whatwg.org/#concept-document-content-type
-if ( (document.contentType || '').startsWith('image/') ) {
+if ( (document.contentType || '').indexOf('image/')==0 ) {
     return; 
 }
 

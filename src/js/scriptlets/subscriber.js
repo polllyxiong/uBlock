@@ -29,63 +29,62 @@
 /******************************************************************************/
 
 (function() {
+  'use strict';
 
-'use strict';
+  /******************************************************************************/
 
-/******************************************************************************/
-
-// https://github.com/chrisaljoudi/uBlock/issues/464
-if ( document instanceof HTMLDocument === false ) {
+  // https://github.com/chrisaljoudi/uBlock/issues/464
+  if (document instanceof HTMLDocument === false) {
     //console.debug('subscriber.js > not a HTLMDocument');
     return;
-}
+  }
 
-// Because in case
-if ( typeof vAPI !== 'object' ) {
+  // Because in case
+  if (typeof vAPI !== 'object') {
     //console.debug('subscriber.js > vAPI not found');
     return;
-}
+  }
 
-/******************************************************************************/
+  /******************************************************************************/
 
-// Only if at least one subscribe link exists on the page.
+  // Only if at least one subscribe link exists on the page.
 
-if (
+  if (
     document.querySelector('a[href^="abp:"],a[href^="https://subscribe.adblockplus.org/?"]') === null &&
-    window.location.href.startsWith('https://github.com/gorhill/uBlock/wiki/Filter-lists-from-around-the-web') === false
-) {
+    window.location.href.indexOf('https://github.com/gorhill/uBlock/wiki/Filter-lists-from-around-the-web') != 0
+  ) {
     return;
-}
+  }
 
-/******************************************************************************/
+  /******************************************************************************/
 
-var messager = vAPI.messaging.channel('subscriber.js');
+  var messager = vAPI.messaging.channel('subscriber.js');
 
-/******************************************************************************/
+  /******************************************************************************/
 
-var onAbpLinkClicked = function(ev) {
-    if ( ev.button !== 0 ) {
-        return;
+  var onAbpLinkClicked = function(ev) {
+    if (ev.button !== 0) {
+      return;
     }
     var target = ev.target;
     var limit = 3;
     var href = '';
     do {
-        if ( target instanceof HTMLAnchorElement ) {
-            href = target.href;
-            break;
-        }
-        target = target.parentNode;
-    } while ( target && --limit );
-    if ( href === '' ) {
-        return;
+      if (target instanceof HTMLAnchorElement) {
+        href = target.href;
+        break;
+      }
+      target = target.parentNode;
+    } while (target && --limit);
+    if (href === '') {
+      return;
     }
     var matches = /^abp:\/*subscribe\/*\?location=([^&]+).*title=([^&]+)/.exec(href);
-    if ( matches === null ) {
-        matches = /^https?:\/\/.*?[&?]location=([^&]+).*?&title=([^&]+)/.exec(href);
-        if ( matches === null ) {
-            return;
-        }
+    if (matches === null) {
+      matches = /^https?:\/\/.*?[&?]location=([^&]+).*?&title=([^&]+)/.exec(href);
+      if (matches === null) {
+        return;
+      }
     }
     var location = decodeURIComponent(matches[1]);
     var title = decodeURIComponent(matches[2]);
@@ -94,47 +93,54 @@ var onAbpLinkClicked = function(ev) {
     ev.preventDefault();
 
     var onListsSelectionDone = function() {
-        messager.send({ what: 'reloadAllFilters' });
+      messager.send({
+        what: 'reloadAllFilters'
+      });
     };
 
     var onExternalListsSaved = function() {
-        messager.send({
-            what: 'selectFilterLists',
-            switches: [ { location: location, off: false } ]
-        }, onListsSelectionDone);
+      messager.send({
+        what: 'selectFilterLists',
+        switches: [{
+          location: location,
+          off: false
+        }]
+      }, onListsSelectionDone);
     };
 
     var onSubscriberDataReady = function(details) {
-        var confirmStr = details.confirmStr
-                            .replace('{{url}}', location)
-                            .replace('{{title}}', title);
-        if ( !window.confirm(confirmStr) ) {
-            return;
-        }
+      var confirmStr = details.confirmStr
+        .replace('{{url}}', location)
+        .replace('{{title}}', title);
+      if (!window.confirm(confirmStr)) {
+        return;
+      }
 
-        // List already subscribed to?
-        // https://github.com/chrisaljoudi/uBlock/issues/1033
-        // Split on line separators, not whitespaces.
-        var text = details.externalLists.trim();
-        var lines = text !== '' ? text.split(/\s*[\n\r]+\s*/) : [];
-        if ( lines.indexOf(location) !== -1 ) {
-            return;
-        }
-        lines.push(location, '');
+      // List already subscribed to?
+      // https://github.com/chrisaljoudi/uBlock/issues/1033
+      // Split on line separators, not whitespaces.
+      var text = details.externalLists.trim();
+      var lines = text !== '' ? text.split(/\s*[\n\r]+\s*/) : [];
+      if (lines.indexOf(location) !== -1) {
+        return;
+      }
+      lines.push(location, '');
 
-        messager.send({
-            what: 'userSettings',
-            name: 'externalLists',
-            value: lines.join('\n')
-        }, onExternalListsSaved);
+      messager.send({
+        what: 'userSettings',
+        name: 'externalLists',
+        value: lines.join('\n')
+      }, onExternalListsSaved);
     };
 
-    messager.send({ what: 'subscriberData' }, onSubscriberDataReady);
-};
+    messager.send({
+      what: 'subscriberData'
+    }, onSubscriberDataReady);
+  };
 
-document.addEventListener('click', onAbpLinkClicked, true);
+  document.addEventListener('click', onAbpLinkClicked, true);
 
-/******************************************************************************/
+  /******************************************************************************/
 
 })();
 
